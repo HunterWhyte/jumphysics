@@ -1,0 +1,7 @@
+zig-cache
+web/*
+build/*
+*.exe
+joom
+.vscode
+*.bin
