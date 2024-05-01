@@ -1,6 +1,7 @@
 zig-cache
 web/*
 build/*
+*build/
 *.exe
 joom
 .vscode
