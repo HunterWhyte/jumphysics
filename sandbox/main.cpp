@@ -20,6 +20,9 @@
 
 #include <gl_util.h>
 
+#include "math.h"
+#include "math_util.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -37,6 +40,21 @@ bool g_vsync = 0;
 JGL::Font g_font;
 
 bool DebugInput(SDL_Event* event, SDL_Window* window);
+
+#define CIRCLE_SEGMENTS 11
+static void drawCircle(Vec2 center, float size, float r, float g, float b, float a) {
+  Vec2 vertices[CIRCLE_SEGMENTS + 1];
+
+  for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+    float angle = i * 2 * 3.1415 / CIRCLE_SEGMENTS;
+    float x = center.x + (size * cosf(angle));
+    float y = center.y + (size * sinf(angle));
+    vertices[i].x = x;
+    vertices[i].y = y;
+  }
+
+  JGL::drawTriangleFan(vertices, CIRCLE_SEGMENTS + 1, r, g, b, a);
+}
 
 int main(int argc, char** argv) {
   float slowdown = 1;
@@ -106,6 +124,7 @@ int main(int argc, char** argv) {
   passthrough_shader =
       JGL::loadShaderProgram("../assets/passthrough.vert", "../assets/passthrough.frag");
   JGL::loadFont("../assets/DroidSans.ttf", &g_font);
+  GLuint tex = JGL::loadTexture("../assets/test.png");
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   printf("started...\n");
 
@@ -158,7 +177,6 @@ int main(int argc, char** argv) {
       tick++;
     }
 
-    // render TODO: this should all live inside the view for various screens, let them handle it
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, w, h);
     glEnable(GL_BLEND);
@@ -170,9 +188,73 @@ int main(int argc, char** argv) {
     JGL::setOrthoProjectionMatrix(u_perspective, 0, w, 0, h);
     char fps[100];
     sprintf(fps, "%f, %f", delta_time * 1000.0, 1.0 / delta_time);
-    JGL::drawText(fps, g_font, 20, w - 200, h - 20, 1.0, 0.0, 1.0, 1.0);
-    JGL::Vec2 guh[] = {{0, 0}, {20, 20}, {60, 20}, {20, 90}};
-    JGL::drawLineLoop(guh, 4, 1, 1, 1, 1);
+    // JGL::drawText(fps, g_font, 40, 20, 20, 1.0, 1.0, 1.0, 1.0);
+
+    int body_len = 4;
+    float size = 100;
+    float l = (w - size) / 2;
+    float t = (h - size) / 2;
+    Vec2 body[body_len] = {
+        {l, t}, {l, t + size}, {l + size, t + size}, {l + size, t}};
+
+    // draw some polygon
+    JGL::drawLineLoop(body, 4, 2, 1, 1, 1, 1);
+
+    // draw a dot that follows the mouse
+    int mousex, mousey;
+    SDL_GetMouseState(&mousex, &mousey);
+    Vec2 mouse_pos = {(float)mousex, (float)mousey};
+
+    float collided = true;
+    // draw dotted lines extending from the edges of that polygon
+    // check overlap for faces of shape A and shape B
+    for (int i = 0; i < body_len; i++) {
+      Vec2 axis = body[(i + 1) % body_len] - body[i];
+      Vec2 offset = body[i];
+
+      // lazy, extend them out some big distance
+      Vec2 line[2] = {offset, (offset - (50.0f * axis))};
+      JGL::drawLineLoop(line, 2, 1, 1, 1, 1, 0.5);
+      Vec2 other_line[2] = {offset, (offset + (50.0f * axis))};
+      JGL::drawLineLoop(other_line, 2, 1, 1, 1, 1, 0.5);
+
+      axis = normalize(axis);
+
+      // determine the shapes projection onto the axis
+      float max_p;
+      float min_p;
+      // set the bounds off first vertice
+      max_p = dot(axis, body[0] - offset);
+      min_p = max_p;
+      for (int j = 1; j < body_len; j++) {
+        float p = dot(axis, body[j] - offset);
+        if (p < min_p) {
+          min_p = p;
+        } else if (p > max_p) {
+          max_p = p;
+        }
+      }
+
+      Vec2 poly_proj[2] = {offset + (min_p * axis), offset + (max_p * axis)};
+      // draw the line segment in a different color between min p and max p
+      JGL::drawLineLoop(poly_proj, 2, 1, 1, 0, 0, 0.5);
+
+      // draw dot of the mouse projected onto all the edges of the polygon
+      float p = dot(mouse_pos - offset, axis);
+      if (p >= min_p && p < max_p) {
+        drawCircle(offset + (p * axis), 5, 1, 0, 0, 0.5);
+      } else {
+        drawCircle(offset + (p * axis), 5, 0, 1, 0, 0.5);
+        collided = false;
+      }
+    }
+
+    // change color if mouse is inside the polygon
+    if (collided) {
+      drawCircle(mouse_pos, 5, 1, 0, 0, 1);
+    } else {
+      drawCircle(mouse_pos, 5, 0, 1, 0, 1);
+    }
 
     SDL_GL_SwapWindow(window);
   }

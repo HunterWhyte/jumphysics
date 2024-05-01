@@ -254,6 +254,10 @@ GLuint JGL::loadShaderProgram(const char* vert_shader_path, const char* frag_sha
   GL_CHECK(glAttachShader(program_object, vertex_shader));
   GL_CHECK(glAttachShader(program_object, fragment_shader));
 
+  GL_CHECK(glBindAttribLocation(program_object, 0, "a_position"));
+  GL_CHECK(glBindAttribLocation(program_object, 1, "a_texCoord0"));
+  GL_CHECK(glBindAttribLocation(program_object, 2, "a_color"));
+
   GL_CHECK(glLinkProgram(program_object));
   GL_CHECK(glGetProgramiv(program_object, GL_LINK_STATUS, &linked));
   if (!linked) {
@@ -397,6 +401,11 @@ void drawPrimitive(GLuint primitive, const Vec2 points[], int points_len, float 
 }
 
 void JGL::drawLineLoop(const Vec2 points[], int points_len, float r, float g, float b, float a) {
+  drawPrimitive(GL_LINE_LOOP, points, points_len, r, g, b, a);
+}
+
+void JGL::drawLineLoop(const Vec2 points[], int points_len, float width, float r, float g, float b, float a) {
+  glLineWidth(width);
   drawPrimitive(GL_LINE_LOOP, points, points_len, r, g, b, a);
 }
 

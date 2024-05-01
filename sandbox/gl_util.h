@@ -17,6 +17,8 @@
 #include "stb_image.h"
 #include "stb_truetype.h"
 
+#include "math_util.h"
+
 #define NUM_ASCII_CHARS 96
 #define FIRST_ASCII_CHAR 32
 #define FONT_MAX_LINE_HEIGHT 256.0f
@@ -33,10 +35,6 @@ struct NormalizedCharData {
   float xoff, yoff, xadvance, w, h;
 };
 
-struct Vec2 {
-  float x,y;
-};
-
 struct Font {
   GLuint texture[FONT_NUM_LEVELS];
   NormalizedCharData data[FONT_NUM_LEVELS][NUM_ASCII_CHARS];
@@ -51,6 +49,7 @@ void setOrthoProjectionMatrix(GLuint matrix_uniform, GLfloat left, GLfloat right
 void drawTexturedQuad(GLuint texture, float x, float y, float dest_w, float dest_h, float u,
                       float v, float src_w, float src_h, float r, float g, float b, float a);
 void drawLineLoop(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
+void drawLineLoop(const Vec2 points[], int points_len, float width, float r, float g, float b, float a);
 void drawPoints(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
 void drawTriangleStrip(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
 void drawTriangleFan(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
