@@ -48,12 +48,12 @@ void setOrthoProjectionMatrix(GLuint matrix_uniform, GLfloat left, GLfloat right
                               GLfloat bottom);
 void drawTexturedQuad(GLuint texture, float x, float y, float dest_w, float dest_h, float u,
                       float v, float src_w, float src_h, float r, float g, float b, float a);
-void drawLineLoop(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
-void drawLineLoop(const Vec2 points[], int points_len, float width, float r, float g, float b, float a);
-void drawPoints(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
-void drawTriangleStrip(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
-void drawTriangleFan(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
-void drawTriangles(const Vec2 vertices[], int vertices_len, float r, float g, float b, float a);
+void drawLineLoop(const vec2 vertices[], int vertices_len, float r, float g, float b, float a);
+void drawLineLoop(const vec2 points[], int points_len, float width, float r, float g, float b, float a);
+void drawPoints(const vec2 vertices[], int vertices_len, float r, float g, float b, float a);
+void drawTriangleStrip(const vec2 vertices[], int vertices_len, float r, float g, float b, float a);
+void drawTriangleFan(const vec2 vertices[], int vertices_len, float r, float g, float b, float a);
+void drawTriangles(const vec2 vertices[], int vertices_len, float r, float g, float b, float a);
 
 long loadFont(const char* font_path, Font* font);
 void drawText(const char* text, Font font, float line_height, float x, float y, float r, float g,

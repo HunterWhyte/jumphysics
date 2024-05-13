@@ -28,6 +28,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 		"SHELL:-s USE_SDL=2"
 		"SHELL:-s USE_FREETYPE=1"
 		"SHELL:-s USE_SDL_MIXER=2"
+		# "SHELL:-s MODULARIZE"
+		# "SHELL:-s EXPORT_NAME=point_to_poly"
 		# "SHELL: -fdebug-compilation-dir='.'"
 		# "SHELL: -gseparate-dwarf='sandbox.dbg.wasm'"
 		)
@@ -39,15 +41,16 @@ if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 		--use-preload-plugins
 		--no-heap-copy
 		"SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@assets"
-		"SHELL:--shell-file ${CMAKE_CURRENT_SOURCE_DIR}/ext/emscripten/shell_minimal.html"
+		"SHELL:--shell-file ${CMAKE_CURRENT_SOURCE_DIR}/emscripten/shell_minimal.html"
 		"SHELL:-s WASM=1"
 		"SHELL:-s ALLOW_MEMORY_GROWTH=1"
 		"SHELL:-s NO_EXIT_RUNTIME=0"
-		"SHELL:-s ASSERTIONS=1")
+		"SHELL:-s ASSERTIONS=1"
+		# "SHELL:-s MODULARIZE"
+		# "SHELL:-s EXPORT_NAME=point_to_poly"
+		)
 
-	add_subdirectory(ext/datachannel-wasm EXCLUDE_FROM_ALL)
-
-	set_target_properties(sandbox PROPERTIES OUTPUT_NAME "sandbox")
+	set_target_properties(sandbox PROPERTIES OUTPUT_NAME "point_to_poly")
 	set_target_properties(sandbox PROPERTIES SUFFIX ".html")
 	# target_link_libraries(sandbox)
 

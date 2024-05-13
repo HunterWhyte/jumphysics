@@ -2,20 +2,20 @@
 
 #include <math.h>
 
-struct Vec2 {
+struct vec2 {
 
-  Vec2() {}
-  Vec2(float x, float y) : x(x), y(y) {}
+  vec2() {}
+  vec2(float x, float y) : x(x), y(y) {}
 
   // overload negate
-  Vec2 operator-() const { return Vec2(-x, -y); }
+  vec2 operator-() const { return vec2(-x, -y); }
 
-  void operator+=(const Vec2& v) {
+  void operator+=(const vec2& v) {
     x += v.x;
     y += v.y;
   }
 
-  void operator-=(const Vec2& v) {
+  void operator-=(const vec2& v) {
     x -= v.x;
     y -= v.y;
   }
@@ -37,45 +37,45 @@ struct mat22 {
     column1 = {c, s};
     column2 = {-s, c};
   }
-  Vec2 column1, column2;
+  vec2 column1, column2;
 };
 
-// Vec2 binary operators
-inline Vec2 operator+(const Vec2& a, const Vec2& b) {
-  return Vec2(a.x + b.x, a.y + b.y);
+// vec2 binary operators
+inline vec2 operator+(const vec2& a, const vec2& b) {
+  return vec2(a.x + b.x, a.y + b.y);
 }
-inline Vec2 operator-(const Vec2& a, const Vec2& b) {
-  return Vec2(a.x - b.x, a.y - b.y);
+inline vec2 operator-(const vec2& a, const vec2& b) {
+  return vec2(a.x - b.x, a.y - b.y);
 }
 
-inline float dot(const Vec2& a, const Vec2& b) {
+inline float dot(const vec2& a, const vec2& b) {
   return a.x * b.x + a.y * b.y;
 }
-inline float cross(const Vec2& a, const Vec2& b) {
+inline float cross(const vec2& a, const vec2& b) {
   return a.x * b.y - a.y * b.x;
 }
-inline Vec2 cross(const Vec2& a, float s) {
-  return Vec2(s * a.y, -s * a.x);
+inline vec2 cross(const vec2& a, float s) {
+  return vec2(s * a.y, -s * a.x);
 }
-inline Vec2 cross(float s, const Vec2& a) {
-  return Vec2(-s * a.y, s * a.x);
+inline vec2 cross(float s, const vec2& a) {
+  return vec2(-s * a.y, s * a.x);
 }
-inline Vec2 operator*(float s, const Vec2& v) {
-  return Vec2(s * v.x, s * v.y);
+inline vec2 operator*(float s, const vec2& v) {
+  return vec2(s * v.x, s * v.y);
 }
-inline float distanceSquared(const Vec2& a, const Vec2& b) {
-  Vec2 d = b - a;
+inline float distanceSquared(const vec2& a, const vec2& b) {
+  vec2 d = b - a;
   return dot(d, d);
 }
-inline float distance(const Vec2& a, const Vec2& b) {
+inline float distance(const vec2& a, const vec2& b) {
   return sqrt(distanceSquared(a, b));
 }
 
-inline float magnitude(const Vec2& v) {
+inline float magnitude(const vec2& v) {
   return sqrt(v.x * v.x + v.y * v.y);
 }
-inline Vec2 normalize(const Vec2& a, const Vec2& b) {
-  Vec2 normal;
+inline vec2 normalize(const vec2& a, const vec2& b) {
+  vec2 normal;
   normal.x = -(b.y - a.y);
   normal.y = b.x - a.x;
   float mag = magnitude(normal);
@@ -84,12 +84,12 @@ inline Vec2 normalize(const Vec2& a, const Vec2& b) {
 
   return normal;
 }
-inline Vec2 normalize(const Vec2& v) {
+inline vec2 normalize(const vec2& v) {
   return (float(1.0f) / magnitude(v)) * v;
 }
 
-inline Vec2 mul(const mat22& A, const Vec2& v) {
-  return Vec2(A.column1.x * v.x + A.column2.x * v.y, A.column1.y * v.x + A.column2.y * v.y);
+inline vec2 mul(const mat22& A, const vec2& v) {
+  return vec2(A.column1.x * v.x + A.column2.x * v.y, A.column1.y * v.x + A.column2.y * v.y);
 }
 
 // float operations

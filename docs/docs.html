@@ -1,0 +1,268 @@
+<!doctypehtml>
+  <html lang=en-us>
+
+  <head>
+    <meta charset=utf-8>
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no" name=viewport>
+    <title>jumphysics docs</title>
+    <style>
+      body {
+        margin: 50;
+        justify-content: center;
+        align-items: center;
+        background-color: #000;
+        display: flex;
+      }
+
+      .contents {
+        font-family: Georgia;
+        font-size: smaller;
+        margin: auto;
+        width: 75%;
+        max-width: 800px;
+        text-align: left;
+        justify-content: center;
+        align-items: center;
+        color: rgb(196, 191, 180);
+        position: relative;
+      }
+
+      .demo-container {
+        width: 75%;
+        height: 250px;
+        margin: auto;
+        position: relative;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        margin: auto;
+        border: 1px solid white;
+      }
+
+      .contents h1 {
+        text-align: center;
+        /* Centers the text of the h1 element */
+      }
+
+      .contents h3 {
+        text-align: left;
+        font-size: 1.5em;
+        font-weight: 100;
+        /* Centers the text of the h1 element */
+      }
+
+      .contents h4 {
+        color: rgb(147, 147, 147);
+        font-weight: 100;
+        font-size: 1.5em;
+        text-align: center;
+        /* Centers the text of the h1 element */
+        margin-top: -15px;
+      }
+
+      .contents h5 {
+        color: rgb(147, 147, 147);
+        font-weight: 100;
+        font-size: 1.2em;
+        text-align: center;
+        /* Centers the text of the h1 element */
+        margin-top: 3px;
+      }
+
+      .contents p {
+        font-size: 1.4em;
+        text-align: left;
+        /* Centers the text of the h1 element */
+      }
+
+      .quote-highlight {
+        background-color: #373737;
+        color: #fff;
+        /* Light grey background */
+        font-style: italic;
+        /* Optional: italicize the quote */
+      }
+
+      .source-link {
+        color: #ccc;
+        text-decoration: none;
+      }
+
+      .source-link:hover {
+        color: #fff;
+        text-decoration: underline;
+      }
+
+      .side-note {
+        color: #ccc;
+        font-size: 0.75em;
+        font-weight: 100;
+      }
+
+      .image-container {
+        width: 25%;
+        display: flex;
+        /* Use flexbox to center the image */
+        justify-content: center;
+        /* Center horizontally */
+        align-items: center;
+        /* Center vertically */
+        margin: auto;
+        /* Space above and below the image container */
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        margin: auto;
+      }
+
+      .code-block {
+        font-family: 'Courier New', Courier, monospace;
+        background-color: #211e1d;
+        color: #ebdbb2;
+        padding-left: 5px;
+        border-radius: 5px;
+        overflow-x: auto;
+        white-space: pre;
+      }
+
+      .keyword {
+        color: #e78a4e;
+      }
+
+      .string {
+        color: #b8bb26;
+      }
+
+      .comment {
+        color: #928374;
+      }
+
+      .number {
+        color: #d3869b;
+      }
+
+      .function {
+        color: #a9b665;
+      }
+
+      .variable {
+        color: #e4e2c9;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="contents">
+      <h1>Investigation into 2D Collision Detection for Convex Polygons</h1>
+      <h4>Hunter Whyte · May 2024</h4>
+      <p>&emsp;<b>The goal:</b> Detect collisions between 2 moving (rotating & translating) convex polygons.</p>
+      <p>
+        When using a simulation that runs with a fixed timestep where polygons are moved based on their velocity and
+        angular
+        velocity each step; the simplest approach is to perform collision detection at the end of every step.
+      </p>
+      <h2>Discrete Collision Detection</h2>
+      <p>&emsp;Performing collision detection on discrete timesteps means that checking if polygons are overlapping
+        after they are moved. The algorithm selected to determine if two convex polygons are
+        overlapping is the <b>separating axis theorem</b>. Which states:
+        <span class="quote-highlight">"Two closed convex objects are disjoint if there exists a line ("separating axis")
+          onto which the two objects'
+          projections are disjoint."</span> <a
+          href="https://en.wikipedia.org/wiki/Hyperplane_separation_theorem#Use_in_collision_detection"
+          class="source-link">[0]</a>
+      </p>
+
+      <p>i.e. given two convex polygons A and B that are overlapping then the projections of A and B onto
+        <b>every</b> possible axis will also be overlapping. If the projections of the polygons are not overlapping on
+        any given axis then the two polygons are disjoint.
+      </p>
+      <!-- 
+      <div class="image-container">
+        <img src="separating_axis_theorem.png" alt="Diagram of Separating Axis Theorem">
+      </div>
+      <h5><a href="https://en.wikipedia.org/wiki/Hyperplane_separation_theorem#Use_in_collision_detection"
+          class="source-link">Separating Axis Theorem</a></h5>
+ -->
+
+      <h2>Determining if a point lies within a convex polygon.</h2>
+      <p>Consider the simpler example of determining if a point is contained within a polygon. <br>
+        To do this:<br>
+        &emsp;1. pick an axis<br>
+        &emsp;2. project the polygon onto the axis<br>
+        &emsp;3. check if the point projected onto the axis is within the bounds of the projected polygon<br>
+        &emsp;if the point is outside of the polygon for <b>any</b> axis then we know that it is not within
+        the polygon. <br><br>It turns out that we only need check the normal of each edge of the polygon as a separating
+        axes. If the
+        projections are overlapping on every axis given by the normal of each edge then it is guaranteed that the point
+        intersects the polygon. <span class="side-note">(This can actually be done with only one axis for point +
+          polygon but thats irrelevant
+          for our end goal)</span>
+      </p>
+      <div class="demo-container">
+        <iframe src="point_to_poly.html" width=100% height=100%></iframe>
+      </div>
+      <h5>Interactive demo for checking if a point is contained within a polygon. <br>Move the mouse to move the green
+        point,
+        click to switch to a different polygon.</h5>
+      <p>
+        · White lines represent the axes we are checking<br>
+        · Red lines are the projection of the polygon.<br>
+        · Green/red dots show if the point is intersecting with the polygon/projection.<br>
+        <span class="side-note"> Note that the axes (white lines)
+          are shown centered on the edge that they are derived from, however the orientation of the axes is all that
+          matters as we are taking the projection of the polygon onto those axes. </span>
+      </p>
+
+      <p>Algorithm for determining if the projection of the point overlaps with the projection of the polygon for a
+        given axis:<br>
+        &emsp;1. Iterate over all the vertices of the polygon and compute their dot product with the axis.<br>
+        &emsp;2. Find the max and min values from the dot product to defines the 1D region.<br>
+        &emsp;3. Perform the dot product of the point and the axis.<br>
+        If the point's projection lies within the min/max bounds of the polygon's projection then they are overlapping.
+      </p>
+
+      <pre class="code-block">
+<code>
+<span class="comment">// get vectors perpendicular to edge</span>
+<span class="variable">axes</span> = []
+<span class="keyword">for</span> <span class="variable">edge</span> <span class="keyword">in</span> <span class="variable">polygon</span>{
+  <span class="variable">axes</span>.<span class="function">add</span>(<span class="function">normal</span>(<span class="variable">edge</span>))
+}
+
+<span class="keyword">for</span> <span class="variable">axis</span> <span class="keyword">in</span> <span class="variable">axes</span> {
+  <span class="comment">// compute the projection of the polygon onto the selected axis</span>
+  <span class="variable">poly_proj</span> = []
+  <span class="keyword">for</span> <span class="variable">vertex</span> <span class="keyword">in</span> <span class="variable">polygon</span>{
+    <span class="variable">vertex_proj</span> = <span class="function">dot</span>(<span class="variable">axis</span>, <span class="variable">vertex</span>)
+    <span class="variable">poly_proj</span>.<span class="function">add</span>(<span class="variable">vertex_proj</span>)
+  }
+
+  <span class="comment">// compute the projection of the point onto the selected axis</span>
+  <span class="variable">point_proj</span> = <span class="function">dot</span>(<span class="variable">axis</span>, <span class="variable">point</span>)
+
+  <span class="comment">// check if the point is outside of the polygon projection</span>
+  <span class="keyword">if</span>(<span class="variable">point_proj</span> < <span class="function">min</span>(<span class="variable">poly_proj</span>) <span class="keyword">or</span> <span class="variable">point_proj</span> > <span class="function">fmax</span>(<span class="variable">poly_proj</span>)){
+    <span class="comment">// point is outside of polygon!</span>
+  }
+}
+</code>
+  </pre>
+      <h2>Determining if two convex polygons intersect</h2>
+      <div class="demo-container">
+        <iframe src="poly_to_poly.html" width=100% height=100%></iframe>
+      </div>
+      <h2>Where discrete collision detection fails</h2>
+      <h2>Continuous Collision Detection</h2>
+      <h2>Computing Distance</h2>
+      <h2>Point to Line Segment</h2>
+      <h2>Point to Triangle</h2>
+      <h2>Point to Convex Polygon</h2>
+      <h2>Convex Polygon to Convex Polygon</h2>
+    </div>
+  </body>
+
+  </html>

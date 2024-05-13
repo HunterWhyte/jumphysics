@@ -362,7 +362,7 @@ void JGL::drawTexturedQuad(GLuint texture, float x, float y, float dest_w, float
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices);
 }
 
-void drawPrimitive(GLuint primitive, const Vec2 points[], int points_len, float r, float g, float b,
+void drawPrimitive(GLuint primitive, const vec2 points[], int points_len, float r, float g, float b,
                    float a) {
   GLfloat vertices[points_len * 9];
   GLushort indices[points_len];
@@ -400,27 +400,27 @@ void drawPrimitive(GLuint primitive, const Vec2 points[], int points_len, float 
   glDrawElements(primitive, points_len, GL_UNSIGNED_SHORT, indices);
 }
 
-void JGL::drawLineLoop(const Vec2 points[], int points_len, float r, float g, float b, float a) {
+void JGL::drawLineLoop(const vec2 points[], int points_len, float r, float g, float b, float a) {
   drawPrimitive(GL_LINE_LOOP, points, points_len, r, g, b, a);
 }
 
-void JGL::drawLineLoop(const Vec2 points[], int points_len, float width, float r, float g, float b, float a) {
+void JGL::drawLineLoop(const vec2 points[], int points_len, float width, float r, float g, float b, float a) {
   glLineWidth(width);
   drawPrimitive(GL_LINE_LOOP, points, points_len, r, g, b, a);
 }
 
-void JGL::drawPoints(const Vec2 points[], int points_len, float r, float g, float b, float a) {
+void JGL::drawPoints(const vec2 points[], int points_len, float r, float g, float b, float a) {
   drawPrimitive(GL_POINTS, points, points_len, r, g, b, a);
 }
 
-void JGL::drawTriangleStrip(const Vec2 points[], int points_len, float r, float g, float b, float a) {
+void JGL::drawTriangleStrip(const vec2 points[], int points_len, float r, float g, float b, float a) {
   drawPrimitive(GL_TRIANGLE_STRIP, points, points_len, r, g, b, a);
 }
 
-void JGL::drawTriangleFan(const Vec2 points[], int points_len, float r, float g, float b, float a) {
+void JGL::drawTriangleFan(const vec2 points[], int points_len, float r, float g, float b, float a) {
   drawPrimitive(GL_TRIANGLE_FAN, points, points_len, r, g, b, a);
 }
 
-void JGL::drawTriangles(const Vec2 points[], int points_len, float r, float g, float b, float a) {
+void JGL::drawTriangles(const vec2 points[], int points_len, float r, float g, float b, float a) {
   drawPrimitive(GL_TRIANGLES, points, points_len, r, g, b, a);
 }

@@ -42,8 +42,8 @@ JGL::Font g_font;
 bool DebugInput(SDL_Event* event, SDL_Window* window);
 
 #define CIRCLE_SEGMENTS 11
-static void drawCircle(Vec2 center, float size, float r, float g, float b, float a) {
-  Vec2 vertices[CIRCLE_SEGMENTS + 1];
+static void drawCircle(vec2 center, float size, float r, float g, float b, float a) {
+  vec2 vertices[CIRCLE_SEGMENTS + 1];
 
   for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
     float angle = i * 2 * 3.1415 / CIRCLE_SEGMENTS;
@@ -54,6 +54,308 @@ static void drawCircle(Vec2 center, float size, float r, float g, float b, float
   }
 
   JGL::drawTriangleFan(vertices, CIRCLE_SEGMENTS + 1, r, g, b, a);
+}
+
+#define MAX_VERTICES 32
+struct Body {
+  Body() {}
+  vec2 center = {0, 0};  // point
+  float r = 0;           // angle
+  vec2 vertices[MAX_VERTICES];
+  int num_vertices = 0;
+};
+
+void getAbsoluteVertices(const Body* b, vec2* v) {
+  mat22 rot;  // rotation matrix
+  rot.set(b->r);
+  for (int i = 0; i < b->num_vertices; i++) {
+    v[i] = mul(rot, b->vertices[i]);
+    v[i] += b->center;
+  }
+}
+
+float rotator = 0;
+
+#define NUM_SHAPES 6
+void drawSim(float w, float h, float delta, int shape) {
+  Body b = {};
+  float s = min(w, h)/5;
+  rotator += delta * 0.1;
+  b.center = {w / 2, h / 2};
+  switch (shape) {
+    case 0:
+      b.vertices[0] = {-s, -s};
+      b.vertices[1] = {-s, s};
+      b.vertices[2] = {s, s};
+      b.vertices[3] = {s, -s};
+      b.num_vertices = 4;
+      break;
+    case 1:
+      b.vertices[0] = {-s, -s};
+      b.vertices[1] = {-s, s};
+      b.vertices[2] = {s, s / 2};
+      b.num_vertices = 3;
+      break;
+    case 2:
+      b.vertices[0] = {-s * 2, 0};
+      b.vertices[1] = {-s / 2, -s};
+      b.vertices[2] = {s / 2, -s};
+      b.vertices[3] = {s * 2, 0};
+      b.vertices[4] = {s / 2, s};
+      b.vertices[5] = {-s / 2, s};
+      b.num_vertices = 6;
+      break;
+    case 3:
+      b.vertices[0] = {-s * 0.5f, -s * 1.2f};
+      b.vertices[1] = {-s * 1.1f, 0.0f};
+      b.vertices[2] = {-s * 0.5f, s * 1.2f};
+      b.vertices[3] = {s * 0.3f, s * 0.8f};
+      b.vertices[4] = {s * 1.3f, 0.0f};
+      b.vertices[5] = {s * 0.3f, -s * 0.8f};
+      b.num_vertices = 6;
+      break;
+    case 4:
+      b.vertices[0] = {-s * 0.8f, -s};
+      b.vertices[1] = {-s, s * 0.6f};
+      b.vertices[2] = {0.0f, s*2.0f};
+      b.vertices[3] = {s, s * 3.0f};
+      b.vertices[4] = {s * 1.8f, -s};
+      b.num_vertices = 5;
+      break;
+    case 5:
+      b.vertices[0] = {-s, -s * 0.3f};
+      b.vertices[1] = {-s * 0.7f, s * 0.9f};
+      b.vertices[2] = {0.0f, s};
+      b.vertices[3] = {s * 0.7f, s * 0.9f};
+      b.vertices[4] = {s, -s * 0.3f};
+      b.vertices[5] = {0.0f, -s * 3.1f};
+      b.num_vertices = 6;
+      break;
+  }
+
+  b.r = rotator;
+
+  vec2 verts[MAX_VERTICES];
+  getAbsoluteVertices(&b, verts);
+
+  // draw a dot that follows the mouse
+  int mousex, mousey;
+  SDL_GetMouseState(&mousex, &mousey);
+  vec2 mouse_pos = {(float)mousex, (float)mousey};
+
+  float collided = true;
+  // draw dotted lines extending from the edges of that polygon
+  // check overlap for faces of shape A and shape B
+  for (int i = 0; i < b.num_vertices; i++) {
+    vec2 edge = verts[(i + 1) % b.num_vertices] - verts[i];
+    vec2 axis = {edge.y, -edge.x};
+    vec2 offset = verts[i] + (0.5 * edge);
+
+    // lazy, extend them out some big distance
+    vec2 line[2] = {offset, (offset - (50.0f * axis))};
+    JGL::drawLineLoop(line, 2, 1, 1, 1, 1, 0.15);
+    vec2 other_line[2] = {offset, (offset + (50.0f * axis))};
+    JGL::drawLineLoop(other_line, 2, 1, 1, 1, 1, 0.15);
+
+    axis = normalize(axis);
+
+    // determine the shapes projection onto the axis
+    float max_p;
+    float min_p;
+    // set the bounds off first vertice
+    max_p = dot(axis, verts[0] - offset);
+    min_p = max_p;
+    for (int j = 1; j < b.num_vertices; j++) {
+      float p = dot(axis, verts[j] - offset);
+      if (p < min_p) {
+        min_p = p;
+      } else if (p > max_p) {
+        max_p = p;
+      }
+    }
+
+    // draw the line segment in a different color between min p and max p
+    vec2 poly_proj[2] = {offset + (min_p * axis), offset + (max_p * axis)};
+    JGL::drawLineLoop(poly_proj, 2, 2, 1, 0, 0, 0.2);
+
+    // draw dot of the mouse projected onto all the edges of the polygon
+    float p = dot(mouse_pos - offset, axis);
+    if (p >= min_p && p < max_p) {
+      drawCircle(offset + (p * axis), 4, 1, 0, 0, 0.5);
+    } else {
+      drawCircle(offset + (p * axis), 4, 0, 1, 0, 0.5);
+      collided = false;
+    }
+  }
+
+  // change color if mouse is inside the polygon
+  if (collided) {
+    JGL::drawLineLoop(verts, b.num_vertices, 2, 1, 0, 0, 1);
+    drawCircle(mouse_pos, 6, 1, 0, 0, 1);
+  } else {
+    JGL::drawLineLoop(verts, b.num_vertices, 2, 1, 1, 1, 1);
+    drawCircle(mouse_pos, 6, 0, 1, 0, 1);
+  }
+}
+
+#define NUM_SHAPES 6
+void polyToPoly(float w, float h, float delta, int shape) {
+  Body a = {};
+  Body b = {};
+  float s = min(w, h) / 8;
+  rotator += delta * 0.1;
+  b.center = {w / 2, h / 2};
+  switch (shape) {
+    case 0:
+      b.vertices[0] = {-s, -s};
+      b.vertices[1] = {-s, s};
+      b.vertices[2] = {s, s};
+      b.vertices[3] = {s, -s};
+      b.num_vertices = 4;
+      break;
+    case 1:
+      b.vertices[0] = {-s, -s};
+      b.vertices[1] = {-s, s};
+      b.vertices[2] = {s, s / 2};
+      b.num_vertices = 3;
+      break;
+    case 2:
+      b.vertices[0] = {-s * 2, 0};
+      b.vertices[1] = {-s / 2, -s};
+      b.vertices[2] = {s / 2, -s};
+      b.vertices[3] = {s * 2, 0};
+      b.vertices[4] = {s / 2, s};
+      b.vertices[5] = {-s / 2, s};
+      b.num_vertices = 6;
+      break;
+    case 3:
+      b.vertices[0] = {-s * 0.5f, -s * 1.2f};
+      b.vertices[1] = {-s * 1.1f, 0.0f};
+      b.vertices[2] = {-s * 0.5f, s * 1.2f};
+      b.vertices[3] = {s * 0.3f, s * 0.8f};
+      b.vertices[4] = {s * 1.3f, 0.0f};
+      b.vertices[5] = {s * 0.3f, -s * 0.8f};
+      b.num_vertices = 6;
+      break;
+    case 4:
+      b.vertices[0] = {-s * 0.8f, -s};
+      b.vertices[1] = {-s, s * 0.6f};
+      b.vertices[2] = {0.0f, s * 2.0f};
+      b.vertices[3] = {s, s * 3.0f};
+      b.vertices[4] = {s * 1.8f, -s};
+      b.num_vertices = 5;
+      break;
+    case 5:
+      b.vertices[0] = {-s, -s * 0.3f};
+      b.vertices[1] = {-s * 0.7f, s * 0.9f};
+      b.vertices[2] = {0.0f, s};
+      b.vertices[3] = {s * 0.7f, s * 0.9f};
+      b.vertices[4] = {s, -s * 0.3f};
+      b.vertices[5] = {0.0f, -s * 3.1f};
+      b.num_vertices = 6;
+      break;
+  }
+
+  a.vertices[0] = {-s, -s};
+  a.vertices[1] = {-s, s};
+  a.vertices[2] = {s, s / 2};
+  a.num_vertices = 3;
+
+  b.r = M_2_PI;
+
+  // draw a dot that follows the mouse
+  int mousex, mousey;
+  SDL_GetMouseState(&mousex, &mousey);
+  vec2 mouse_pos = {(float)mousex, (float)mousey};
+  a.center = mouse_pos;
+
+  vec2 b_verts[MAX_VERTICES];
+  getAbsoluteVertices(&b, b_verts);
+  vec2 a_verts[MAX_VERTICES];
+  getAbsoluteVertices(&a, a_verts);
+
+  float collided = true;
+
+  for (int i = 0; i < a.num_vertices + b.num_vertices; i++) {
+    vec2 edge;
+    vec2 normal;
+    vec2 offset;
+    if (i < a.num_vertices) {
+      int ind = i;
+      edge = a_verts[(ind + 1) % a.num_vertices] - a_verts[ind];
+      normal = {edge.y, -edge.x};
+      offset = a_verts[ind] + (0.5 * edge);
+    } else {
+      int ind = i - a.num_vertices;
+      edge = b_verts[(ind + 1) % b.num_vertices] - b_verts[ind];
+      normal = {edge.y, -edge.x};
+      offset = b_verts[ind] + (0.5 * edge);
+    }
+
+    vec2 axis = normalize(normal);
+
+    // determine shape A projection onto the axis
+    float a_max_p;
+    float a_min_p;
+    // set the bounds off first vertice
+    a_max_p = dot(axis, a_verts[0] - offset);
+    a_min_p = a_max_p;
+    for (int j = 1; j < a.num_vertices; j++) {
+      float p = dot(axis, a_verts[j] - offset);
+      if (p < a_min_p) {
+        a_min_p = p;
+      } else if (p > a_max_p) {
+        a_max_p = p;
+      }
+    }
+    // shape B projection onto the axis
+    float b_max_p;
+    float b_min_p;
+    // set the bounds off first vertice
+    b_max_p = dot(axis, b_verts[0] - offset);
+    b_min_p = b_max_p;
+    for (int j = 1; j < b.num_vertices; j++) {
+      float p = dot(axis, b_verts[j] - offset);
+      if (p < b_min_p) {
+        b_min_p = p;
+      } else if (p > b_max_p) {
+        b_max_p = p;
+      }
+    }
+
+    float overlap = min(a_max_p, b_max_p) - max(a_min_p, b_min_p);
+
+    // if overlapping
+    if (overlap > 0) {
+      // draw the axis lazy, extend them out some big distance
+      vec2 line[2] = {offset, (offset - (50.0f * normal))};
+      JGL::drawLineLoop(line, 2, 1, 1, 0, 0, 0.4);
+      vec2 other_line[2] = {offset, (offset + (50.0f * normal))};
+      JGL::drawLineLoop(other_line, 2, 1, 1, 0, 0, 0.4);
+    } else {
+      collided = false;
+      vec2 line[2] = {offset, (offset - (50.0f * normal))};
+      JGL::drawLineLoop(line, 2, 1, 1, 1, 1, 0.15);
+      vec2 other_line[2] = {offset, (offset + (50.0f * normal))};
+      JGL::drawLineLoop(other_line, 2, 1, 1, 1, 1, 0.15);
+    }
+
+    // draw the line segment in a different color between min p and max p
+    vec2 a_poly_proj[2] = {offset + (a_min_p * axis), offset + (a_max_p * axis)};
+    JGL::drawLineLoop(a_poly_proj, 2, 2, 0.2, 0.2, 1, 0.5);
+
+    // draw the line segment in a different color between min p and max p
+    vec2 b_poly_proj[2] = {offset + (b_min_p * axis), offset + (b_max_p * axis)};
+    JGL::drawLineLoop(b_poly_proj, 2, 2, 0, 1, 0, 0.2);
+  }
+
+  if (collided) {
+    JGL::drawLineLoop(b_verts, b.num_vertices, 2, 1, 0, 0, 0.75);
+    JGL::drawLineLoop(a_verts, a.num_vertices, 2, 1, 0, 0, 0.75);
+  } else {
+    JGL::drawLineLoop(b_verts, b.num_vertices, 2, 1, 1, 1, 0.75);
+    JGL::drawLineLoop(a_verts, a.num_vertices, 2, 1, 1, 1, 0.75);
+  }
 }
 
 int main(int argc, char** argv) {
@@ -130,6 +432,7 @@ int main(int argc, char** argv) {
 
   // main loop
   bool done = false;
+  int shape = 3;
 #ifdef __EMSCRIPTEN__
   EMSCRIPTEN_MAINLOOP_BEGIN
 #else
@@ -171,6 +474,12 @@ int main(int argc, char** argv) {
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
         done = DebugInput(&event, window);
+        if (event.type == SDL_MOUSEBUTTONDOWN) {
+          shape++;
+          if (shape == NUM_SHAPES) {
+            shape = 0;
+          }
+        }
       }
 
       acc -= TIMESTEP * slowdown;
@@ -190,71 +499,8 @@ int main(int argc, char** argv) {
     sprintf(fps, "%f, %f", delta_time * 1000.0, 1.0 / delta_time);
     // JGL::drawText(fps, g_font, 40, 20, 20, 1.0, 1.0, 1.0, 1.0);
 
-    int body_len = 4;
-    float size = 100;
-    float l = (w - size) / 2;
-    float t = (h - size) / 2;
-    Vec2 body[body_len] = {
-        {l, t}, {l, t + size}, {l + size, t + size}, {l + size, t}};
-
-    // draw some polygon
-    JGL::drawLineLoop(body, 4, 2, 1, 1, 1, 1);
-
-    // draw a dot that follows the mouse
-    int mousex, mousey;
-    SDL_GetMouseState(&mousex, &mousey);
-    Vec2 mouse_pos = {(float)mousex, (float)mousey};
-
-    float collided = true;
-    // draw dotted lines extending from the edges of that polygon
-    // check overlap for faces of shape A and shape B
-    for (int i = 0; i < body_len; i++) {
-      Vec2 axis = body[(i + 1) % body_len] - body[i];
-      Vec2 offset = body[i];
-
-      // lazy, extend them out some big distance
-      Vec2 line[2] = {offset, (offset - (50.0f * axis))};
-      JGL::drawLineLoop(line, 2, 1, 1, 1, 1, 0.5);
-      Vec2 other_line[2] = {offset, (offset + (50.0f * axis))};
-      JGL::drawLineLoop(other_line, 2, 1, 1, 1, 1, 0.5);
-
-      axis = normalize(axis);
-
-      // determine the shapes projection onto the axis
-      float max_p;
-      float min_p;
-      // set the bounds off first vertice
-      max_p = dot(axis, body[0] - offset);
-      min_p = max_p;
-      for (int j = 1; j < body_len; j++) {
-        float p = dot(axis, body[j] - offset);
-        if (p < min_p) {
-          min_p = p;
-        } else if (p > max_p) {
-          max_p = p;
-        }
-      }
-
-      Vec2 poly_proj[2] = {offset + (min_p * axis), offset + (max_p * axis)};
-      // draw the line segment in a different color between min p and max p
-      JGL::drawLineLoop(poly_proj, 2, 1, 1, 0, 0, 0.5);
-
-      // draw dot of the mouse projected onto all the edges of the polygon
-      float p = dot(mouse_pos - offset, axis);
-      if (p >= min_p && p < max_p) {
-        drawCircle(offset + (p * axis), 5, 1, 0, 0, 0.5);
-      } else {
-        drawCircle(offset + (p * axis), 5, 0, 1, 0, 0.5);
-        collided = false;
-      }
-    }
-
-    // change color if mouse is inside the polygon
-    if (collided) {
-      drawCircle(mouse_pos, 5, 1, 0, 0, 1);
-    } else {
-      drawCircle(mouse_pos, 5, 0, 1, 0, 1);
-    }
+    drawSim((float)w, (float)h, delta_time, shape);
+    // polyToPoly((float)w, (float)h, delta_time, shape);
 
     SDL_GL_SwapWindow(window);
   }
